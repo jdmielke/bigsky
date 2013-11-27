@@ -1,15 +1,17 @@
 package bigsky.messaging;
 
 import java.net.*;
+import java.util.ArrayList;
 import java.io.*;
 
+import bigsky.BlueTextRequest;
+import bigsky.BlueTextResponse;
 import bigsky.Contact;
 import bigsky.TaskBar;
 import bigsky.TextMessage;
-import bigsky.TextMessageManager;
 import bigsky.gui.Conversation;
 import bigsky.gui.LoadScreen;
-import bigsky.gui.SmallChat;
+import bigsky.Global;
 
 class ClientConn implements Runnable {
 	
@@ -24,6 +26,7 @@ class ClientConn implements Runnable {
 	}
 
 	public void run() {
+		Contact user = new Contact("Jonathan", "Mielke", "6185204620", "");
 		ObjectInputStream br = null;
 		try {
 			br = new ObjectInputStream(client.getInputStream());
@@ -32,28 +35,37 @@ class ClientConn implements Runnable {
 				if(streamObject instanceof Contact)
 				{
 					Contact ct = (Contact) streamObject;
-					System.out.println("Got contact first=" + ct.getFirstName() + " last=" + ct.getLastName() + " number=" + ct.getPhoneNumber());				
+					TaskBar.incomingContactQueue.add(ct);
+					synchronized(TaskBar.textManager){
+						TaskBar.textManager.notify();
+					}
 				}
 				else if(streamObject instanceof TextMessage)
 				{
 					TextMessage txtMessage = (TextMessage) streamObject;
-					txtMessage.setReceiver(new Contact("Jonathan", "Mielke", "6185204620", ""));
-					System.out.println("Client: " + txtMessage.getContent());
-
-					System.out.println("TEXT ADDED TO ARRAY");
-					
-					TaskBar.myTextArray.add(txtMessage);
-					
+					txtMessage.setReceiver(user);
+					System.out.println("Client: " + txtMessage.getContent());					
+					TaskBar.myTextArray.add(txtMessage);					
+					synchronized(TaskBar.textManager){
+						TaskBar.textManager.notify();
+					}
+				}
+				else if(streamObject instanceof BlueTextResponse)
+				{
+					BlueTextResponse response = (BlueTextResponse) streamObject;
+					Global.phoneTextHistory = response.getChatHistory();
+					Global.blueTextRqContact = response.getOriginalRequest().getContact();
+					System.out.println("Got " + Global.phoneTextHistory.size() + " messages from " + response.getOriginalRequest().getContact().getPhoneNumber());
 					synchronized(TaskBar.textManager){
 						TaskBar.textManager.notify();
 					}
 				}
 				else{
-					System.out.println("Unknown object sent through stream");
+					System.out.println("ERROR: Unknown object sent through stream");
 				}
 			}
 		} catch (Exception e) {
-			System.out.println(e.getMessage() + " inside run()");
+			System.out.println(e.getMessage() + " inside ClientConn.run()");
 		}
 	}
 }
@@ -61,37 +73,48 @@ class ClientConn implements Runnable {
 public class MessageHost extends Thread{
 	
 	public ClientConn conn = null;
-	public ObjectOutputStream ps2 = null;
+	private ObjectOutputStream ps2 = null;
+	private ServerSocket socket = null;
+
 	
 	public void run(){
 		
 		LoadScreen load = new LoadScreen();
-		ServerSocket socket = null;
 		try{
 			
 			socket = new ServerSocket(1300);
-			System.out.print("Waiting for request from peer.....");
 			load.setVisible(true);
 			Socket client = socket.accept();
 			conn = new ClientConn(client);
-			System.out.println("request accepted!\nBeginning of chat:");
 			load.dispose();
-			Conversation convo = new Conversation();
-			convo.getFrmBluetext().setVisible(true);
+			TaskBar.convo = new Conversation();
+			TaskBar.convo.getFrmBluetext().setVisible(true);
 			ps2 = new ObjectOutputStream(client.getOutputStream());
-
-		} catch(Exception e){
 			
+		} catch(Exception e){
+			System.out.println("Caught exception while setting up MessageHost" + e.getMessage());
 		}
 		finally{
-			System.out.println("Closing server socket.");
 			if(socket != null)
+			{
 				try {
 					socket.close();
-				} catch (IOException e) {
-					
-				}
-
+				} catch (IOException e) {}
+			}
+		}
+	}
+	
+	public void closeHost(){
+		
+		if(ps2 != null){
+			try {
+				ps2.close();
+			} catch (IOException e) {}
+		}
+		if(socket !=null){
+			try {
+				socket.close();
+			} catch (IOException e) {}
 		}
 	}
 	

@@ -32,6 +32,8 @@ public class EditContact {
 	private Contact contactToEdit;
 	private int contactArrayNumber;
 	private String oldName;
+	private String oldFirstName;
+	private String oldLastName;
 
 	/**
 	 * Create the application.
@@ -40,6 +42,8 @@ public class EditContact {
 		contactToEdit = contact;
 		contactArrayNumber = contactNumber;
 		oldName = selectedValue;
+		oldFirstName = contact.getFirstName();
+		oldLastName = contact.getLastName();
 		initialize();
 	}
 
@@ -103,13 +107,12 @@ public class EditContact {
 			public void actionPerformed(ActionEvent e) {
 				Contact validatedContact = validateContact(txtFirstName.getText(), txtLastName.getText(), txtPhone.getText(), txtSecondPhone.getText());
 				if (validatedContact != null) {
-					Global.contactList[contactArrayNumber] = validatedContact;
+					Global.contactAList.set(contactArrayNumber, validatedContact);
 					Global.listModel.removeElement(oldName);
-					addContactToListModel(contactArrayNumber);
+					addContactToListModel(txtFirstName.getText(), txtLastName.getText());
 					frame.setVisible(false);
 				}
-				
-				
+
 				//TODO Place in correct order
 				
 			}
@@ -167,18 +170,57 @@ public class EditContact {
 				return null;
 			}
 		}
+		if (!(oldFirstName.equals(firstName) && oldLastName.equals(lastName))){
+			//check for duplicate naming
+			for (int i = 0; i<Global.contactAList.size();i++){
+				Contact con = Global.contactAList.get(i);
+				if (con.getFirstName().equals(firstName)){
+					if (con.getLastName().equals(lastName)){
+						JOptionPane.showMessageDialog(null, "This name already exists. Please choose a new name");
+						return null;
+					}
+				}
+			}
+		}
+		
 		return new Contact(firstName, lastName, phone, secondPhone);
 	}
 	
-	public void addContactToListModel(int i){
-		if (!Global.contactList[i].getFirstName().equals("")){
-			String newEntry = Global.contactList[i].getFirstName() + " " + Global.contactList[i].getLastName();
-			Global.listModel.addElement(newEntry);
+	private boolean addContactToListModel(String firstName, String lastName){
+		String newEntry;
+		if (!firstName.equals("")){
+			if (!lastName.equals("")){
+				newEntry = firstName + " " + lastName;
+			}
+			else {
+				newEntry = firstName;
+			}
+			int j = Global.listModel.size()/2;
+			j = getNewPositionBasedOnStringComparision(j, newEntry);
+			Global.listModel.add(j, newEntry);
 		}
-		else if (!Global.contactList[i].getLastName().equals("")){
-			String newEntry = Global.contactList[i].getLastName();
-			Global.listModel.addElement(newEntry);
+		else if (!lastName.equals("")){
+			newEntry = lastName;
+			int j = Global.listModel.size()/2;
+			j = getNewPositionBasedOnStringComparision(j, newEntry);
+			Global.listModel.add(j, newEntry);
+			return true;
 		}
+		return false;
+	}
+	
+	private int getNewPositionBasedOnStringComparision(int j , String newEntry){
+		String testEntry = newEntry.toLowerCase();
+		String listEntry = (String)Global.listModel.get(j);
+		while (testEntry.compareTo(listEntry.toLowerCase()) < 0 & j!=0){
+			j = j /2;
+			listEntry = (String)Global.listModel.get(j);
+		}
+		while (testEntry.compareTo(listEntry.toLowerCase()) > 0 & j < Global.listModel.size()-1){
+			j++;
+			listEntry = (String)Global.listModel.get(j);
+		}
+		return j;
 	}
 	
 	

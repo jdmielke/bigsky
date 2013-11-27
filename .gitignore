@@ -62,7 +62,7 @@ build/
 [Tt]est[Rr]esult*/
 [Bb]uild[Ll]og.*
 
-userPreferences.properties
+
 *_i.c
 *_p.c
 *.ilk

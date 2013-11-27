@@ -181,32 +181,20 @@ public class Register extends JFrame {
 		Register.addActionListener(new ActionListener() {
 	        public void actionPerformed(ActionEvent e) {
 	        
-	        	try {
-					if(registerChecks()){
+	        	if(registerChecks()){
 
-						try {
-							putInSystem();
-							
-							Register.setVisible(false);
-							Login.setVisible(true);
-							finishLogin.setVisible(true);
-							
-							
-						} catch (ClassNotFoundException e1) {
-							// TODO Auto-generated catch block
-							e1.printStackTrace();
-						} catch (SQLException e1) {
-							// TODO Auto-generated catch block
-							e1.printStackTrace();
-						}
-						        		
+					try {
+						putInSystem();
+						
+						Register.setVisible(false);
+						Login.setVisible(true);
+						finishLogin.setVisible(true);
+						
+						
+					} catch (Exception e1) {
+						System.out.println("Register error");
 					}
-				} catch (ClassNotFoundException e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
-				} catch (SQLException e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
+					        		
 				}
      
 	        }
@@ -248,7 +236,7 @@ public class Register extends JFrame {
 		}
 		
 	
-	private boolean registerChecks() throws ClassNotFoundException, SQLException{
+	private boolean registerChecks(){
 		int count = 0;
 		String pass = getPassword(password);
 		String confirmPass = getPassword(confirmPassword);
@@ -261,12 +249,17 @@ public class Register extends JFrame {
 		usernameIncorrect.setVisible(false);
 		lastNameIncorrect.setVisible(false);
 		requiredToRegister.setVisible(false);
+		try{
+			
 		
 		if(isInSystem()){
 			usernameAlreadyRegistered.setVisible(true);
 			return false;
 		}
-		
+		}
+		catch(Exception e){
+			System.out.println("Register Checks error" + e.getMessage());
+		}
 		if(pass == null || confirmPass == null || pass.equals("")|| confirmPass.equals("")|| !pass.equals(confirmPass)){
 			passwordIncorrect.setVisible(true);
 			confirmPasswordIncorrect.setVisible(true);
@@ -295,8 +288,8 @@ public class Register extends JFrame {
 		return false;
 	}
 	
-	private void putInSystem() throws ClassNotFoundException, SQLException{
-		
+	private void putInSystem(){
+		try{
 		Class.forName("com.mysql.jdbc.Driver");
 		Connection con = DriverManager.getConnection("jdbc:mysql://mysql.cs.iastate.edu/db30901", "adm309", "EXbDqudt4");
 		Statement stmt = con.createStatement();
@@ -306,13 +299,17 @@ public class Register extends JFrame {
 				"')";
 	
 		stmt.executeUpdate(query);
-		con.close();		
+		con.close();	
+		}
+		catch(Exception e){
+			System.out.println("put in system error");
+		}
 	}
 	
 	
-	private boolean isInSystem() throws ClassNotFoundException, SQLException{
+	private boolean isInSystem(){
 		
-		
+		try{
 		Class.forName("com.mysql.jdbc.Driver");
 		Connection con = DriverManager.getConnection("jdbc:mysql://mysql.cs.iastate.edu/db30901", "adm309", "EXbDqudt4");
 		Statement stmt = con.createStatement();
@@ -328,6 +325,10 @@ public class Register extends JFrame {
 		
 		rs.close();		
 		con.close();
+		}
+		catch(Exception e){
+			System.out.println("in system error");
+		}
 		return false;
 	}
 }

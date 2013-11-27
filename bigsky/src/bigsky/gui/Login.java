@@ -34,8 +34,8 @@ import java.util.Properties;
 import javax.swing.JLabel;
 import javax.swing.JButton;
 
+import bigsky.Global;
 import bigsky.TaskBar;
-import bigsky.TextMessageManager;
 import bigsky.messaging.*;
 
 public class Login extends JFrame {
@@ -45,7 +45,6 @@ public class Login extends JFrame {
 	private JPasswordField passwordField_1;
 	private JLabel promptRegister;
 	private JLabel wrongInfo;
-	public static MessageHost messageHost = null;
 	private JRadioButton saveInfo;
 	private boolean hit = false;
 
@@ -97,11 +96,11 @@ public class Login extends JFrame {
 		
 		JLabel lblPhoneNumber = new JLabel("Phone Number");
 		lblPhoneNumber.setForeground(Color.WHITE);
-		lblPhoneNumber.setBounds(131, 135, 98, 16);
+		lblPhoneNumber.setBounds(126, 135, 98, 16);
 		image.add(lblPhoneNumber);
 		
 		JLabel lblPassword = new JLabel("Password");
-		lblPassword.setBounds(134, 185, 98, 16);
+		lblPassword.setBounds(126, 185, 98, 16);
 		lblPassword.setForeground(Color.WHITE);
 		image.add(lblPassword);
 		
@@ -141,32 +140,22 @@ public class Login extends JFrame {
 
 						dispose();
 						TaskBar.putIconInSystemTray();
-						if(messageHost==null){   
-				   	   		messageHost = new MessageHost();
-				   	   		messageHost.start();
+						if(TaskBar.messageHost==null){   
+				   	   		TaskBar.messageHost = new MessageHost();
+				   	   		TaskBar.messageHost.start();
 				   	   		TaskBar.textManager = new TextMessageManager();
 				   	   		TaskBar.textManager.start();
 				        }			
 						LoginInfo();
 						systemPrefs();
 						if(hit){
-							saveInfo();
+							saveInProp(getUsername(), "save", Global.ON);
 						}
 					}
 					else{
 						System.out.println("FAIL");
 					}
-				} catch (ClassNotFoundException e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
-				} catch (SQLException e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
-				} catch (UnknownHostException e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
-				}
-            	      
+				} catch (Exception e1) {}			
             }
         });
 		
@@ -203,15 +192,15 @@ public class Login extends JFrame {
 		String user = textField.getText();
 		//takes out all not  digits
 		user = user.replaceAll("\\D+","");
-		return  user.trim();	
+		Global.username = user.trim();
+		return  Global.username;	
 	}
 	
 	
 	//returns row number of users database row
-	public boolean login() throws ClassNotFoundException, SQLException, UnknownHostException{
+	public boolean login(){
 		
-		
-		
+		try{
 		Class.forName("com.mysql.jdbc.Driver");
 		Connection con = DriverManager.getConnection("jdbc:mysql://mysql.cs.iastate.edu/db30901", "adm309", "EXbDqudt4");
 		Statement stmt = con.createStatement();
@@ -252,61 +241,68 @@ public class Login extends JFrame {
 		
 		rs.close();		
 		con.close();
+		}
+		
+		catch(Exception e){
+			System.out.println("Login fail" + e.getMessage());
+		}
+		
 		return true;
 		
 	}
-	
+	/**
+	 * initializes the preference file
+	 */
 	public void LoginInfo(){
 		
 		Properties prop = new Properties();
 		prop.setProperty("username", getUsername());
 		prop.setProperty("password", getPassword(passwordField_1));
-		prop.setProperty("save", "0");
+		prop.setProperty("save", Global.OFF);
+		prop.setProperty(Global.ONLINE,Global.ON);
+		prop.setProperty(Global.AWAY, Global.OFF);
+		prop.setProperty(Global.BUSY, Global.OFF);
+		prop.setProperty(Global.NOTIFICATION,Global.ON);
 		
 		try {
 			prop.store(new FileOutputStream(getUsername() + ".properties"),null);
 			
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}		
+		} catch (Exception e) {
+			System.out.println("file load problem.");
+		}
 		
 	}
 	
-	
-	public void saveInfo(){
+	/**
+	 * Generic method to store items in users preference file
+	 * @param user
+	 * @param property
+	 * @param value
+	 */
+	public static void saveInProp(String user, String property, String value){
 		
 		Properties prop = new Properties();
 
 		try {
-			prop.load(new FileInputStream(getUsername() +".properties"));
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			System.out.println("File not found1");
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			prop.load(new FileInputStream(user +".properties"));
+		} catch (Exception e) {
+			System.out.println("File load problem.");
 		}
 		
-		prop.setProperty("save", "1");
+		prop.setProperty(property, value);
 	
 		try {
-			prop.store(new FileOutputStream(getUsername() +".properties"),null);
+			prop.store(new FileOutputStream(user+".properties"),null);
 			
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}		
+		} catch (Exception e) {
+			System.out.println("file store problem.");
+		}
 		
 		
 	}
-	
+	/**
+	 * Sets up the system preference file
+	 */
 	public void systemPrefs(){
 		
 		Properties prop = new Properties();
@@ -315,13 +311,9 @@ public class Login extends JFrame {
 		try {
 			prop.store(new FileOutputStream("system.properties"),null);
 			
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}		
+		} catch (Exception e) {
+			System.out.println("System store file problem");		
+		}
 		
 	}
 	
